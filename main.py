@@ -32,6 +32,7 @@ def call_regression_model(
         prediction_len: int,
         split_random_state: int = 42,
         random_state: int = 42,
+        hidden_layer_sizes: list[int] = (100, ),
 ):
     regression = Regression(
         df=df,
@@ -45,6 +46,7 @@ def call_regression_model(
 
     if model_name == 'artificial_neural_network':
         input_dict.update({'random_state': random_state})
+        input_dict.update({'hidden_layer_sizes': hidden_layer_sizes})
 
     regression.fit_model(input_dict=input_dict)
     post_actions(regression=regression)
@@ -106,6 +108,7 @@ def optimization_nn_random_states(
         prediction_len: int,
         random_state_iteration_len: int = 100,
         split_random_state_iteration_len: int = 100,
+        hidden_layer_sizes: list[int] = (100, ),
 ):
     model_name = 'artificial_neural_network'
     regression = Regression(
@@ -121,6 +124,7 @@ def optimization_nn_random_states(
         for j in range(random_state_iteration_len):
             input_dict = NAME_INPUT.get(model_name)
             input_dict.update({'random_state': j})
+            input_dict.update({'hidden_layer_sizes': hidden_layer_sizes})
             test_score, test_split_random_state = optimization_split_random_states(
                 regression=regression,
                 split_random_state_iteration_len=split_random_state_iteration_len,
@@ -329,6 +333,8 @@ def main():
     result = None
     observation_len = 365
     prediction_len = 1
+    hidden_layer_size = 40
+    hidden_layer_sizes = [hidden_layer_size for _ in range(12)]
     split_random_state = 64
     random_state = 54
     call_regression_model(
@@ -338,6 +344,7 @@ def main():
         prediction_len=prediction_len,
         split_random_state=split_random_state,
         random_state=random_state,
+        hidden_layer_sizes=hidden_layer_sizes,
     )
 
     # # Could take long time! (NN random states optimization)
@@ -345,6 +352,7 @@ def main():
     #     df=sample_data,
     #     observation_len=observation_len,
     #     prediction_len=prediction_len,
+    #     hidden_layer_sizes=hidden_layer_sizes,
     #     split_random_state_iteration_len=50,
     #     random_state_iteration_len=50,
     # )

@@ -12,8 +12,8 @@ MODEL_NAMES = [
     'random_forest',
 ]
 
-hidden_layer_size = 2000
-hidden_layer_sizes = [hidden_layer_size for _ in range(2)]
+hidden_layer_size = 40
+hidden_layer_sizes = [hidden_layer_size for _ in range(12)]
 
 other_hidden_layer_sizes = [65, 428, 117, 429, 238, 233, 310, 290, 344, 115, 133, 236, 240, ]
 
