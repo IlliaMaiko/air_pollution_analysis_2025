@@ -31,6 +31,7 @@ def call_regression_model(
         observation_len: int,
         prediction_len: int,
         split_random_state: int = 42,
+        random_state: int = 42,
 ):
     regression = Regression(
         df=df,
@@ -40,7 +41,12 @@ def call_regression_model(
         split_random_state=split_random_state,
     )
     regression.split()
-    regression.fit_model(input_dict=NAME_INPUT.get(model_name))
+    input_dict = NAME_INPUT.get(model_name)
+
+    if model_name == 'artificial_neural_network':
+        input_dict.update({'random_state': random_state})
+
+    regression.fit_model(input_dict=input_dict)
     post_actions(regression=regression)
 
 
@@ -319,14 +325,16 @@ def main():
     result = None
     observation_len = 365
     prediction_len = 1
-    # split_random_state = 73
-    # call_regression_model(
-    #     df=sample_data,
-    #     model_name='artificial_neural_network',
-    #     observation_len=observation_len,
-    #     prediction_len=prediction_len,
-    #     split_random_state=split_random_state
-    # )
+    split_random_state = 64
+    random_state = 54
+    call_regression_model(
+        df=sample_data,
+        model_name='artificial_neural_network',
+        observation_len=observation_len,
+        prediction_len=prediction_len,
+        split_random_state=split_random_state,
+        random_state=random_state,
+    )
 
     # # Could take long time! (NN random states optimization)
     # result = optimization_nn_random_states(
@@ -350,18 +358,18 @@ def main():
     #     hidden_layer_base_quantity=1,
     # )
 
-    # Could take long time! (NN random structure optimization)
-    split_random_state = 37
-    result = optimization_nn_random_structure(
-        df=sample_data,
-        observation_len=observation_len,
-        prediction_len=prediction_len,
-        split_random_state=split_random_state,
-        layer_size_iteration_len=10,
-        layer_quantity_iteration_len=1,
-        hidden_layer_base_size=5000,
-        hidden_layer_base_quantity=13,
-    )
+    # # Could take long time! (NN random structure optimization)
+    # split_random_state = 37
+    # result = optimization_nn_random_structure(
+    #     df=sample_data,
+    #     observation_len=observation_len,
+    #     prediction_len=prediction_len,
+    #     split_random_state=split_random_state,
+    #     layer_size_iteration_len=10,
+    #     layer_quantity_iteration_len=1,
+    #     hidden_layer_base_size=5000,
+    #     hidden_layer_base_quantity=13,
+    # )
 
     # # Could take long time! (NN optimization)
     # result = optimization_nn(
