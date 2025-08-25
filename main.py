@@ -201,7 +201,7 @@ def optimization_nn_random_structure(
         model_name='artificial_neural_network',
     )
     best_score, best_hidden_layer_size, best_hidden_layer_quantity = 0, None, None
-    test_score, i, j = 0, None, None
+    test_score, best_hidden_layer_sizes = 0, None
     hidden_layer_size, hidden_layer_quantity, hidden_layer_sizes = None, None, None
     regression.split()
 
@@ -215,7 +215,7 @@ def optimization_nn_random_structure(
                 input_dict.update({'hidden_layer_sizes': hidden_layer_sizes})
                 regression.fit_model(input_dict=input_dict)
                 test_score = regression.test_score()
-                if best_score > regression.test_score():
+                if best_score > test_score:
                     continue
 
                 best_score = test_score
