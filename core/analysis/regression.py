@@ -35,6 +35,7 @@ class Regression:
         'multivariate_linear_regression',
         'random_forest',
     ]
+    smoothed_data: pd.DataFrame
 
     def __init__(
             self,
@@ -42,6 +43,7 @@ class Regression:
             **kwargs,
     ):
         self.df = df
+        self.smoothed_data = None
         if 'observation_len' in kwargs:
             self.observation_len = kwargs.get('observation_len')
 
@@ -66,6 +68,20 @@ class Regression:
         plt.plot(x, y_values)
         plt.show()
 
+    def smooth(self, box_pts: int = 7):
+        column_name = list(self.df.columns)[0]
+        box = np.ones(box_pts) / box_pts
+        y_smooth = np.convolve(np.array(self.df.reset_index(drop=True).values.T.tolist()[0]), box, mode='same')
+
+        copy_df = self.df.copy()
+        copy_df[f'{column_name}_smooth'] = y_smooth
+        self.smoothed_data = copy_df.drop(columns=[column_name])
+
+    def plot_smoothed_against_origin(self):
+        copy_df = self.df.copy()
+        couple = copy_df.join(self.smoothed_data)
+        couple.plot()
+
     def build_regression(self):
         data = self.df.dropna()
         variables = list(data.columns)
@@ -82,11 +98,12 @@ class Regression:
         plt.plot(x, y)
         plt.show()
 
-    def split(self):
+    def split(self, smoothed: bool = False):
         self._split_data_for_training(
             data_len=self.observation_len,
             target_len=self.prediction_len,
             split_random_state=self.split_random_state,
+            smoothed=smoothed,
         )
 
     def fit_model(self, input_dict: dict):
@@ -128,16 +145,24 @@ class Regression:
         print(f'Training score: {self.training_score()}')
         print(f'Testing score: {self.test_score()}')
 
-    def _split_data_for_training(self, data_len: int, target_len: int, split_random_state: int):
+    def _split_data_for_training(self, data_len: int, target_len: int, split_random_state: int, smoothed: bool = False):
+        if smoothed:
+            if self.smoothed_data is None:
+                self.smooth(box_pts=4)
+
+            data_to_split = self.smoothed_data
+        else:
+            data_to_split = self.df
+
         data_target_len = data_len + target_len
-        series_len = len(self.df)
+        series_len = len(data_to_split)
         data_list = list()
         target_list = list()
         for i in range(series_len - data_target_len):
-            temp_data = self.df.reset_index(drop=True).iloc[i:i + data_len].values.T.tolist()[0]
+            temp_data = data_to_split.reset_index(drop=True).iloc[i:i + data_len].values.T.tolist()[0]
             data_list.append(temp_data)
-
-            temp_target = self.df.reset_index(drop=True).iloc[i + data_len:i + data_target_len].values.T.tolist()[0][0]
+            temp_target_raw = data_to_split.reset_index(drop=True).iloc[i + data_len:i + data_target_len]
+            temp_target = temp_target_raw.values.T.tolist()[0][0]
             target_list.append(temp_target)
 
         self.training_data, self.test_data, self.training_target, self.test_target = train_test_split(

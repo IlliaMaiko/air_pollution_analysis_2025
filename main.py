@@ -33,6 +33,7 @@ def call_regression_model(
         split_random_state: int = 42,
         random_state: int = 42,
         hidden_layer_sizes: list[int] = (100, ),
+        smoothed: bool = False,
 ):
     regression = Regression(
         df=df,
@@ -41,7 +42,7 @@ def call_regression_model(
         model_name=model_name,
         split_random_state=split_random_state,
     )
-    regression.split()
+    regression.split(smoothed=smoothed)
     input_dict = NAME_INPUT.get(model_name)
 
     if model_name == 'artificial_neural_network':
@@ -52,12 +53,17 @@ def call_regression_model(
     post_actions(regression=regression)
 
 
-def optimization_split_random_states(regression: Regression, split_random_state_iteration_len: int, input_dict: dict):
+def optimization_split_random_states(
+        regression: Regression,
+        split_random_state_iteration_len: int,
+        input_dict: dict,
+        smoothed: bool = False,
+):
     best_score, best_split_random_state = 0, None
     try:
         for i in range(split_random_state_iteration_len):
             regression.split_random_state = i
-            regression.split()
+            regression.split(smoothed=smoothed)
             regression.fit_model(input_dict=input_dict)
             test_score = regression.test_score()
 
@@ -82,6 +88,7 @@ def optimization_non_nn_split_random_states(
         observation_len: int,
         prediction_len: int,
         split_random_state_iteration_len: int = 100,
+        smoothed: bool = False,
 ):
     regression = Regression(
         df=df,
@@ -96,6 +103,7 @@ def optimization_non_nn_split_random_states(
             regression=regression,
             split_random_state_iteration_len=split_random_state_iteration_len,
             input_dict=input_dict,
+            smoothed=smoothed,
         )
     finally:
         print(f'Current score: {best_score}, split_random_state_result: {best_split_random_state};')
@@ -109,6 +117,7 @@ def optimization_nn_random_states(
         random_state_iteration_len: int = 100,
         split_random_state_iteration_len: int = 100,
         hidden_layer_sizes: list[int] = (100, ),
+        smoothed: bool = False,
 ):
     model_name = 'artificial_neural_network'
     regression = Regression(
@@ -129,10 +138,11 @@ def optimization_nn_random_states(
                 regression=regression,
                 split_random_state_iteration_len=split_random_state_iteration_len,
                 input_dict=input_dict,
+                smoothed=smoothed,
             )
 
-            print(f'Complete: {int(((j + 1) / random_state_iteration_len) * 100)}%; current best score: '
-                  f'{best_score}, {best_split_random_state}, {best_random_state};')
+            # print(f'Complete: {int(((j + 1) / random_state_iteration_len) * 100)}%; current best score: '
+            #       f'{best_score}, {best_split_random_state}, {best_random_state};')
 
             if best_score > test_score:
                 continue
@@ -157,6 +167,7 @@ def optimization_nn_structure(
         hidden_layer_base_quantity: int = 6,
         layer_size_iteration_len: int = 20,
         layer_quantity_iteration_len: int = 15,
+        smoothed: bool = False,
 ):
     regression = Regression(
         df=df,
@@ -168,7 +179,7 @@ def optimization_nn_structure(
     best_score, best_hidden_layer_size, best_hidden_layer_quantity = 0, None, None
     test_score, i, j = 0, None, None
     hidden_layer_size, hidden_layer_quantity = None, None
-    regression.split()
+    regression.split(smoothed=smoothed)
 
     try:
         for j in range(layer_size_iteration_len):
@@ -205,6 +216,7 @@ def optimization_nn_random_structure(
         hidden_layer_base_quantity: int = 6,
         layer_size_iteration_len: int = 20,
         layer_quantity_iteration_len: int = 15,
+        smoothed: bool = False,
 ):
     regression = Regression(
         df=df,
@@ -216,7 +228,7 @@ def optimization_nn_random_structure(
     best_score, best_hidden_layer_size, best_hidden_layer_quantity = 0, None, None
     test_score, best_hidden_layer_sizes = 0, None
     hidden_layer_size, hidden_layer_quantity, hidden_layer_sizes = None, None, None
-    regression.split()
+    regression.split(smoothed=smoothed)
 
     try:
         for j in range(layer_size_iteration_len):
@@ -310,9 +322,11 @@ def post_actions(regression: Regression):
 
 
 def sandbox(data: pd.DataFrame):
-    print(data.describe())
-    print(data.corr())
-    data.plot()
+    # print(data.describe())
+    # print(data.corr())
+    regression = Regression(df=data)
+    regression.smooth(box_pts=4)
+    regression.plot_smoothed_against_origin()
     plt.show()
 
 
@@ -328,15 +342,16 @@ def main():
     """
     data_df = ExtractData()
     data_df.extract_df_from_xls()
-    sample_data = data_df.data.loc['4/17/2023':, ['Амiак']]
+    sample_data = data_df.data.loc['4/17/2023':, ['Формальдегiд']]
 
     result = None
     observation_len = 365
     prediction_len = 1
-    hidden_layer_size = 40
-    hidden_layer_sizes = [hidden_layer_size for _ in range(12)]
-    split_random_state = 64
-    random_state = 54
+    # hidden_layer_size = 40
+    # hidden_layer_sizes = [hidden_layer_size for _ in range(12)]
+    hidden_layer_sizes = [200, 525, 297, 453, 278, 531, 380, 599, 332, 374, 169]
+    split_random_state = 2
+    random_state = 178
     call_regression_model(
         df=sample_data,
         model_name='artificial_neural_network',
@@ -345,6 +360,7 @@ def main():
         split_random_state=split_random_state,
         random_state=random_state,
         hidden_layer_sizes=hidden_layer_sizes,
+        smoothed=True,
     )
 
     # # Could take long time! (NN random states optimization)
@@ -353,8 +369,9 @@ def main():
     #     observation_len=observation_len,
     #     prediction_len=prediction_len,
     #     hidden_layer_sizes=hidden_layer_sizes,
-    #     split_random_state_iteration_len=50,
-    #     random_state_iteration_len=50,
+    #     split_random_state_iteration_len=20,
+    #     random_state_iteration_len=1000,
+    #     smoothed=True,
     # )
 
     # # Could take long time! (NN structure optimization)
@@ -373,18 +390,19 @@ def main():
     # )
 
     # # Could take long time! (NN random structure optimization)
-    # split_random_state = 37
-    # random_state = 26
+    # split_random_state = 13
+    # random_state = 931
     # result = optimization_nn_random_structure(
     #     df=sample_data,
     #     observation_len=observation_len,
     #     prediction_len=prediction_len,
     #     split_random_state=split_random_state,
     #     random_state=random_state,
-    #     layer_size_iteration_len=10,
-    #     layer_quantity_iteration_len=1,
-    #     hidden_layer_base_size=5000,
-    #     hidden_layer_base_quantity=13,
+    #     layer_size_iteration_len=1000,
+    #     layer_quantity_iteration_len=6,
+    #     hidden_layer_base_size=600,
+    #     hidden_layer_base_quantity=7,
+    #     smoothed=True,
     # )
 
     # # Could take long time! (NN optimization)
@@ -398,7 +416,69 @@ def main():
     #     layer_size_iteration_len=40,
     # )
 
+    # # Could take long time! (non NN random states optimization)
+    # result = optimization_non_nn_split_random_states(
+    #     df=sample_data,
+    #     model_name='multivariate_linear_regression',
+    #     observation_len=observation_len,
+    #     prediction_len=prediction_len,
+    #     split_random_state_iteration_len=1000,
+    #     smoothed=True,
+    # )
+
     print(result)
+
+    # # Could take long time! (NN random states optimization)
+    # print('#################################################')
+    # for value in list(data_df.data.columns):
+    #     print(f'Data: {value}')
+    #     temp_sample_data = data_df.data.loc['4/17/2023':, [value]]
+    #     result = optimization_nn_random_states(
+    #         df=temp_sample_data,
+    #         observation_len=observation_len,
+    #         prediction_len=prediction_len,
+    #         hidden_layer_sizes=hidden_layer_sizes,
+    #         split_random_state_iteration_len=100,
+    #         random_state_iteration_len=100,
+    #         smoothed=True,
+    #     )
+    #
+    #     print(result)
+    #     print('#################################################')
+
+    # # Could take long time! (NN random structure optimization)
+    # best_random_states = {
+    #     'Завислі речовини': {'split_random_state': 40, 'random_state': 78,},
+    #     'Дiоксид сiрки': {'split_random_state': 56, 'random_state': 32,},
+    #     'Оксид вуглецю': {'split_random_state': 99, 'random_state': 0,},
+    #     'Дiоксид азоту': {'split_random_state': 37, 'random_state': 84,},
+    #     'Оксид азоту': {'split_random_state': 76, 'random_state': 69,},
+    #     'Фенол': {'split_random_state': 12, 'random_state': 76,},
+    #     'Амiак': {'split_random_state': 24, 'random_state': 83,},
+    #     'Формальдегiд': {'split_random_state': 87, 'random_state': 77,},
+    #     'Сажа': {'split_random_state': 7, 'random_state': 8,},
+    # }
+    # print('#################################################')
+    # for value in list(data_df.data.columns):
+    #     print(f'Data: {value}')
+    #     temp_sample_data = data_df.data.loc['4/17/2023':, [value]]
+    #     split_random_state = best_random_states[value]['split_random_state']
+    #     random_state = best_random_states[value]['random_state']
+    #     result = optimization_nn_random_structure(
+    #         df=temp_sample_data,
+    #         observation_len=observation_len,
+    #         prediction_len=prediction_len,
+    #         split_random_state=split_random_state,
+    #         random_state=random_state,
+    #         layer_size_iteration_len=200,
+    #         layer_quantity_iteration_len=3,
+    #         hidden_layer_base_size=600,
+    #         hidden_layer_base_quantity=11,
+    #         smoothed=True,
+    #     )
+    #
+    #     print(result)
+    #     print('#################################################')
 
     # # Could take long time! (non NN random states optimization)
     # print('#################################################')
@@ -416,6 +496,7 @@ def main():
     #             observation_len=observation_len,
     #             prediction_len=prediction_len,
     #             split_random_state_iteration_len=1000,
+    #             smoothed=True,
     #         )
     #
     #         print(result)
